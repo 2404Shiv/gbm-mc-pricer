@@ -1,0 +1,17 @@
+Single-binary MC pricer for European calls/puts under GBM with **Greeks**, **antithetic + control-variate** variance reduction, and a 1-day **P&L/VaR** panel.
+
+## Why it matters
+Clean MC engineering, numerics, variance-reduction craft, and a risk linkage — core Strats/QR competencies.
+
+## Features
+- GBM paths; European call/put
+- Variance reduction: **antithetic** + **control variate** with optimal \(b^\*\)
+- Greeks: **BS closed-form**, **pathwise Δ**, **CRN bump** for Γ/Vega/Θ/ρ
+- Risk: 1-day revaluation **VaR95/99** and **ES95**
+- Reproducible (seeded), portable C++17, no deps
+
+## Build
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+./build/pricer
