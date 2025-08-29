@@ -48,3 +48,18 @@ assert diff <= 3*se_cv, f"|MC-BS| {diff} > 3*SE {3*se_cv}"
 assert se_cv < se_pl, f"SE with CV {se_cv} not < plain {se_pl}"
 print("Validation OK")
 PY
+
+      - name: Publish VR summary
+        run: |
+          echo "## Variance Reduction (200k paths)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---:|" >> $GITHUB_STEP_SUMMARY
+          echo "| BS Call | $bs_call |" >> $GITHUB_STEP_SUMMARY
+          echo "| MC Call (CV) | $mc_call |" >> $GITHUB_STEP_SUMMARY
+          echo "| SE (CV) | $se_cv |" >> $GITHUB_STEP_SUMMARY
+          echo "| SE (plain) | $se_pl |" >> $GITHUB_STEP_SUMMARY
+          python3 - <<'PY' >> $GITHUB_STEP_SUMMARY
+bs=__import__("os").environ.get("bs_call",""); mc=__import__("os").environ.get("mc_call",""); se_cv=float(__import__("os").environ["se_cv"]); se_pl=float(__import__("os").environ["se_pl"])
+print(f"| Variance reduction (plain→CV) | {(se_pl/se_cv)**2:.2f}× |")
+PY
