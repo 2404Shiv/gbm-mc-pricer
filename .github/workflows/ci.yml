@@ -1,0 +1,35 @@
+Single-binary MC pricer for European calls/puts under GBM with **Greeks**, **antithetic + control-variate** variance reduction, and a 1-day **P&L/VaR** panel.
+
+```yaml
+name: build-and-validate
+on: [push, pull_request]
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j
+      - name: Sanity: price & variance reduction
+        run: |
+          set -e
+          BIN=./build/pricer
+          OUT_CV=$($BIN '{"S0":100,"K":100,"r":0.02,"sigma":0.2,"T":1,"n_paths":200000,"antithetic":true,"control_variate":true,"seed":42}')
+          OUT_PL=$($BIN '{"S0":100,"K":100,"r":0.02,"sigma":0.2,"T":1,"n_paths":200000,"antithetic":false,"control_variate":false,"seed":42}')
+          bs_call=$(echo "$OUT_CV" | awk '/Black-Scholes/{getline; print}' | awk '{print $3}')
+          mc_call=$(echo "$OUT_CV" | awk '/Call_MC/{print $3}')
+          se_cv=$(echo "$OUT_CV" | awk '/Call_MC/{print $6}' | tr -d '(),')
+          se_pl=$(echo "$OUT_PL" | awk '/Call_MC/{print $6}' | tr -d '(),')
+          diff=$(python3 - <<PY
+from math import fabs; import sys
+bs=float(sys.argv[1]); mc=float(sys.argv[2]); print(fabs(mc-bs))
+PY
+$bs_call $mc_call)
+          python3 - <<PY
+bs,mc,se_cv,se_pl,diff=map(float, "$bs_call $mc_call $se_cv $se_pl $diff".split())
+assert diff <= 3*se_cv, f"|MC-BS| {diff} > 3*SE {3*se_cv}"
+assert se_cv < se_pl, f"SE with CV {se_cv} not < plain {se_pl}"
+print("Validation OK")
+PY
