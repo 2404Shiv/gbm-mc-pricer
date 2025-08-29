@@ -1,0 +1,33 @@
+name: release
+on:
+  push:
+    tags: ["v*.*.*"]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: { os: [ubuntu-latest, macos-latest] }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp build/pricer dist/pricer-${{ runner.os }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pricer-${{ runner.os }}
+          path: dist/*
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist }
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
